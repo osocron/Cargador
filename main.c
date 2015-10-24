@@ -3,55 +3,66 @@
 #include<unistd.h>
 #include <string.h>
 
-struct registro {
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+
+struct programa {
     int id;
-    char descripcion[30];
+    char contenido[50];
 };
 
-void mostrarRegistro(char nombreArch[]);
+void mostrarPrograma(char nombreProg[]);
 void printMenu();
-int funcTrans(int matr);
-void agrReg(char nombArch[]);
-int irPos(char nomArch[], int matr);
-void modReg(char nomArch[]);
-void delReg(char nomArch[]);
+void agrProg(char nombProg[]);
+int irPos(char nomProg[], int id);
+void delProg(char nomProg[]);
+void cargarSistema(char nomProg[]);
 
 int main(){
     FILE *f;
-    int i,opc,matr;
-    char nomArch[30];
+    int i,opc,id;
+    char nomProg[30];
     char input[50];
     int mFlag = 0;
 
-    printf("Cual es el nombre del archivo?: ");
-    scanf("%s",nomArch);
+    system("clear");
+    printf("Cual es el nombre del programa de memoria? : ");
+    scanf("%s",nomProg);
 
-    if( access( nomArch, F_OK ) != -1 ) {
+    if( access( nomProg, F_OK ) != -1 ) {
         // file exists
-        if((f=fopen(nomArch,"rb"))==NULL){
-            printf("Error al abrir el archivo!\n");
+        if((f=fopen(nomProg,"rb"))==NULL){
+            printf("Error al abrir el programa!\n");
             exit(0);
         }
-        printf("\nEl archivo existe!\n\n");
+        printf("\nPrograma encontrado, prosiguiendo a cargar el sistema operativo!\n\n");
         printf("Ingresa una letra y luego presiona enter...\n");
         scanf("%s", input);
         fclose(f);
+        cargarSistema(nomProg);
     } else {
         // file doesn't exist
-        struct registro est;
-        printf("\n\nArchivo no existe! Se procedera a crear el esqueleto del archivo!\n\n");
-        if((f=fopen(nomArch,"wb"))==NULL){
-            printf("Error al abrir el archivo!\n");
+        struct programa prog;
+        printf("\n\nLa memoria no existe! Se procedera a crear el esqueleto del programa!\n\n");
+        if((f=fopen(nomProg,"wb"))==NULL){
+            printf("Error al abrir el programa!\n");
             exit(0);
         }
         printf("Ingresa una letra y luego presiona enter...\n");
         scanf("%s",input);
-        est.id =0;
-        strcpy(est.descripcion,"");
-        for(i=0;i<100;i++){
-            fwrite(&est,sizeof(est),1,f);
+        prog.id =0;
+        strcpy(prog.contenido,"");
+        for(i=0;i<5;i++){
+            fwrite(&prog,sizeof(prog),1,f);
         }
         fclose(f);
+        cargarSistema(nomProg);
     }
 
     while(mFlag!=1){
@@ -62,33 +73,30 @@ int main(){
         {
             case 1:
                 system("clear");
-                agrReg(nomArch);
+                agrProg(nomProg);
                 break;
 
             case 2:
                 system("clear");
-                printf("Ingresar el id del registro: ");
-                scanf("%d",&matr);
-                irPos(nomArch,matr);
+                printf("Ingresar el id del programa: ");
+                scanf("%d",&id);
+                irPos(nomProg,id);
                 break;
-
+                
             case 3:
                 system("clear");
-                modReg(nomArch);
-                break;
-            case 4:
-                system("clear");
-                delReg(nomArch);
+                delProg(nomProg);
                 break;
 
-            case 5:
+            case 4:
                 system("clear");
-                mostrarRegistro(nomArch);
+                mostrarPrograma(nomProg);
                 printf("Ingresa una letra y luego presiona enter...\n");
                 scanf("%s",input);
                 break;
-            case 6:
+            case 5:
                 system("clear");
+                printf(KNRM"");
                 mFlag = 1;
                 break;
             default:
@@ -104,118 +112,144 @@ int main(){
     return 0;
 }
 
-void mostrarRegistro(char nombreArch[]){
+void mostrarPrograma(char nombreProg[]){
     FILE *f1;
-    struct registro curReg;
+    struct programa curProg;
     int pos = 0;
 
-    if((f1=fopen(nombreArch,"rb"))==NULL){
-        printf("Error al abrir el archivo!\n");
+    if((f1=fopen(nombreProg,"rb"))==NULL){
+        printf("Error al abrir el programa!\n");
         exit(0);
     }
 
+    printf(KGRN"----------------------------------------------------------------------------------------------------\n");
+    printf("|IdPrograma|                                                        Contenido | Posicion en Memoria|\n");
+    printf("----------------------------------------------------------------------------------------------------\n");
     while(!feof(f1)){
-        fread(&curReg,sizeof(curReg),1,f1);
+        fread(&curProg,sizeof(curProg),1,f1);
         if(feof(f1))
             break;
-        printf("id: %d ",curReg.id);
-        printf("Descripcion: %s ",curReg.descripcion);
-        printf("Posicion en memoria: %d",pos);
+        printf("|");
+        printf(KBLU"%10d",curProg.id);
+        printf(KGRN"|");
+        printf(KCYN"%66s",curProg.contenido);
+        printf(KGRN"|");
+        printf(KRED"%20d",pos);
+        printf(KGRN"|");
         printf("\n");
         pos++;
     }
+    printf(KGRN"----------------------------------------------------------------------------------------------------\n");
+    printf(KNRM"");
     fclose(f1);
 }
 
-void agrReg(char nombArch[]){
-    int n,i,pos;
-    int cont =1;
+void agrProg(char nombProg[]) {
+    
+    int pos = 1;
+    int cont = 1;
     char input[50];
-    FILE *f1;
-    struct registro est1,est2;
+    char linea[50];
+    char nomProg[30];
+    FILE *f1, *f2;
+    struct programa prog1, prog2;
 
-    printf("Cuantos registros quieres ingresar?\n");
-    scanf("%d",&n);
-
-    if((f1=fopen(nombArch,"rb+"))==NULL){
-        printf("Error al abrir el archivo!\n");
+    if ((f1 = fopen(nombProg, "rb+")) == NULL) {
+        printf("Error al abrir el programa!\n");
         exit(0);
     }
 
-    for(i=1;i<=n;i++){
-        printf("Escribe el nombre del registro %d: ",i);
-        scanf("%s",est1.descripcion);
-        printf("\n");
-        printf("Escribe el id: ");
-        scanf("%d",&est1.id);
-        printf("\n");
-        //Aplicar func de transformacion
-        pos = funcTrans(est1.id);
+    //Pproguntar nombre del programa y cargarlo
+    printf("\n");
+    printf("Escribe el nombre del programa: ");
+    scanf("%s", nomProg);
+    printf("\n");
+    if (access(nomProg, F_OK) != -1) {
+        // file exists
+        if ((f2 = fopen(nomProg, "rt")) == NULL) {
+            printf("Error al abrir el programa!\n");
+            exit(0);
+        }
+        printf("\nPrograma encontrado!\n\n");
+
+        //Cargar a memoria el contenido
+        while(fgets(linea,50,f2)) {
+            printf("Contenido del programa: %s", linea);
+            printf("\n");
+            printf("\n");
+        }
+        strcpy(prog1.contenido,linea);
+
         //Ir a la posicion
-        fseek(f1,(sizeof(est1)*(pos-1)),SEEK_SET);
-        //Leer para saber si esta ocupado el archivo
-        fread(&est2,sizeof(est2),1,f1);
-        //Preguntar si esta ocupado el lugar
-        if(est2.id >0){
+        fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
+
+        //Leer para saber si esta ocupado el programa
+        fread(&prog2, sizeof(prog2), 1, f1);
+
+        //Pproguntar si proga ocupado el lugar
+        if (prog2.id > 0) {
             printf("Lugar ocupado!\n\n");
-            while(!feof(f1)){
+            while (!feof(f1)) {
                 //Avanzar el apuntador y leer
-                fread(&est2,sizeof(est2),1,f1);
-                cont+=1;
+                fread(&prog2, sizeof(prog2), 1, f1);
+                cont += 1;
                 //empezar a leer 1 por uno
-                if(feof(f1)){
+                if (feof(f1)) {
                     rewind(f1);
-                    fread(&est2,sizeof(est2),1,f1);
+                    fread(&prog2, sizeof(prog2), 1, f1);
                 }
-                if(est2.id ==0){
-                    fseek(f1,(sizeof(est1)*(-1)),SEEK_CUR);
-                    fwrite(&est1,sizeof(est1),1,f1);
-                    printf("Archivos ingresados correctamente!\n\n");
+                if (prog2.id == 0) {
+                    fseek(f1, (sizeof(prog1) * (-1)), SEEK_CUR);
+                    prog1.id = cont;
+                    fwrite(&prog1, sizeof(prog1), 1, f1);
+                    printf("Programass ingresados correctamente!\n\n");
                     break;
                 }
-                if(cont==100){
-                    printf("No hay mas espacio para agregar el registro!");
+                if (cont == 5) {
+                    printf("No hay mas espacio para agprogar el programa!");
                     break;
                 }
             }
         }
-
         else{
-            fseek(f1,(sizeof(est1)*(pos-1)),SEEK_SET);
-            fwrite(&est1,sizeof(est1),1,f1);
-            printf("Archivos ingresados correctamente!\n\n");
+            fseek(f1,(sizeof(prog1)*(pos-1)),SEEK_SET);
+            prog1.id = cont;
+            fwrite(&prog1,sizeof(prog1),1,f1);
+            printf("Programas ingresados correctamente!\n\n");
+            fclose(f2);
         }
 
     }
+        
     fclose(f1);
     printf("Ingresa una letra y luego presiona enter...\n");
     scanf("%s",input);
 }
 
-int irPos(char nomArch[], int matr){
+int irPos(char nomProg[], int id){
 
     FILE *f2;
     int cont = 0;
-    struct registro registro;
+    struct programa programa;
     char input[50];
 
-    if((f2=fopen(nomArch,"rb"))==NULL){
-        printf("Error al abrir el archivo!\n");
+    if((f2=fopen(nomProg,"rb"))==NULL){
+        printf("Error al abrir el programa!\n");
         exit(0);
     }
 
     while(!feof(f2)){
-        fread(&registro,sizeof(registro),1,f2);
+        fread(&programa,sizeof(programa),1,f2);
         cont+=1;
         if(feof(f2)){
-            printf("registro no encontrado!\n");
+            printf("programa no encontrado!\n");
             cont = 0;
             break;
         }
-        if(registro.id == matr){
-            printf("\nregistro encontrado!: \n\n");
-            printf("Descripcion: %s \n",registro.descripcion);
-            printf("id: %d \n",registro.id);
+        if(programa.id == id){
+            printf("\nprograma encontrado!: \n\n");
+            printf("Descripcion: %s \n",programa.contenido);
+            printf("id: %d \n",programa.id);
             break;
         }
     }
@@ -226,61 +260,28 @@ int irPos(char nomArch[], int matr){
     return cont;
 }
 
-void modReg(char nomArch[]){
-    FILE *f3;
-    int matr1;
-    struct registro estu;
-    char input[50];
 
-    printf("Ingresar el id del registro que desea modificar: ");
-    scanf("%d",&matr1);
-    int pos1 = irPos(nomArch,matr1);
-
-    if(pos1 != 0){
-
-        if((f3=fopen(nomArch,"rb+"))==NULL){
-            printf("Error al abrir el archivo!\n");
-            exit(0);
-        }
-
-        printf("Escribe el id: ");
-        scanf("%d",&estu.id);
-        printf("\n");
-        printf("Escribe la descripcion del registro: ");
-        scanf("%s",estu.descripcion);
-        printf("\n");
-
-        fseek(f3,(sizeof(estu)*(pos1-1)),SEEK_SET);
-        fwrite(&estu,sizeof(estu),1,f3);
-        printf("Registro modificado correctamente!\n\n");
-        fclose(f3);
-
-    }
-    printf("Ingresa una letra y luego presiona enter...\n");
-    scanf("%s",input);
-}
-
-void delReg(char nomArch[]){
+void delProg(char nomProg[]){
     FILE *f4;
-    int matr2;
-    struct registro registroi;
+    int id2;
+    struct programa programa1;
     char input[50];
 
-    printf("Ingresar el id del registro que desea eliminar: ");
-    scanf("%d",&matr2);
-    int pos1 = irPos(nomArch,matr2);
+    printf("Ingresar el id del programa que desea eliminar: ");
+    scanf("%d",&id2);
+    int pos1 = irPos(nomProg,id2);
 
     if(pos1 != 0){
-        if((f4=fopen(nomArch,"rb+"))==NULL){
-            printf("Error al abrir el archivo!\n");
+        if((f4=fopen(nomProg,"rb+"))==NULL){
+            printf("Error al abrir el programa!\n");
             exit(0);
         }
-        registroi.id =0;
-        strcpy(registroi.descripcion,"");
+        programa1.id =0;
+        strcpy(programa1.contenido,"");
 
-        fseek(f4,(sizeof(registroi)*(pos1-1)),SEEK_SET);
-        fwrite(&registroi,sizeof(registroi),1,f4);
-        printf("Registro eliminado correctamente!\n\n");
+        fseek(f4,(sizeof(programa1)*(pos1-1)),SEEK_SET);
+        fwrite(&programa1,sizeof(programa1),1,f4);
+        printf("Programa eliminado correctamente!\n\n");
         fclose(f4);
     }
 
@@ -288,19 +289,55 @@ void delReg(char nomArch[]){
     scanf("%s",input);
 }
 
-int funcTrans(int matr){
-    int pos;
-    pos = matr%100;
-    return pos;
+void cargarSistema(char nomProg[]){
+
+    system("clear");
+
+    FILE *f,*f2;
+    char input[50],linea[50];
+    struct programa prog1;
+
+    if((f=fopen(nomProg,"rb+"))==NULL){
+        printf("Error al abrir el programa!\n");
+        exit(1);
+    }
+
+    if (access("sistema_operativo.txt", F_OK) != -1) {
+        // file exists
+        if ((f2 = fopen("sistema_operativo.txt", "rt")) == NULL) {
+            printf("Error al abrir el programa!\n");
+            exit(1);
+        }
+        printf("\nSistema operativo encontrado!\n\n");
+
+        while (fgets(linea, 50, f2)) {
+            printf("Nombre del Sistema Operativo: %s", linea);
+            printf("\n");
+            printf("\n");
+        }
+
+        strcpy(prog1.contenido, linea);
+        fseek(f,(sizeof(prog1)*(0)),SEEK_SET);
+        prog1.id = 1;
+        fwrite(&prog1,sizeof(prog1),1,f);
+        printf("Sistema operativo cargado exitosamente!\n\n");
+        fclose(f2);
+        fclose(f);
+        printf("Ingresa una letra y luego presiona enter...\n");
+        scanf("%s",input);
+
+    } else{
+        printf("Error al cargar el sistema opertaivo!");
+        exit(1);
+    }
 }
 
 void printMenu(){
     system("clear");
     printf("Favor de elegir una opcion: \n\n");
-    printf("1. Cargar registros a memoria\n");
-    printf("2. Consultar un registro\n");
-    printf("3. Modificar un registro\n");
-    printf("4. Eliminar un registro de la memoria\n");
-    printf("5. Mostrar todos los registros de la memoria\n");
-    printf("6. Salir del programa\n\n");
+    printf("1. Cargar programas a memoria\n");
+    printf("2. Consultar un programa\n");
+    printf("3. Eliminar un programa de la memoria\n");
+    printf("4. Mostrar todos los programas de la memoria\n");
+    printf("5. Salir del programa\n\n");
 }
