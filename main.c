@@ -23,6 +23,9 @@ void agrProg(char nombProg[]);
 int irPos(char nomProg[], int id);
 void delProg(char nomProg[]);
 void cargarSistema(char nomProg[]);
+void printColors(int opc);
+
+int id = 2;
 
 int main(){
     FILE *f;
@@ -58,7 +61,7 @@ int main(){
         scanf("%s",input);
         prog.id =0;
         strcpy(prog.contenido,"");
-        for(i=0;i<5;i++){
+        for(i=0;i<15;i++){
             fwrite(&prog,sizeof(prog),1,f);
         }
         fclose(f);
@@ -122,7 +125,8 @@ void mostrarPrograma(char nombreProg[]){
         exit(0);
     }
 
-    printf(KGRN"----------------------------------------------------------------------------------------------------\n");
+    printColors(7);
+    printf("----------------------------------------------------------------------------------------------------\n");
     printf("|IdPrograma|                                                        Contenido | Posicion en Memoria|\n");
     printf("----------------------------------------------------------------------------------------------------\n");
     while(!feof(f1)){
@@ -130,17 +134,24 @@ void mostrarPrograma(char nombreProg[]){
         if(feof(f1))
             break;
         printf("|");
-        printf(KBLU"%10d",curProg.id);
-        printf(KGRN"|");
-        printf(KCYN"%66s",curProg.contenido);
-        printf(KGRN"|");
-        printf(KRED"%20d",pos);
-        printf(KGRN"|");
+        printColors(curProg.id);
+        printf("%10d",curProg.id);
+        printColors(7);
+        printf("|");
+        printColors(curProg.id);
+        printf("%66s",curProg.contenido);
+        printColors(7);
+        printf("|");
+        printColors(curProg.id);
+        printf("%20d",pos);
+        printColors(7);
+        printf("|");
         printf("\n");
         pos++;
     }
-    printf(KGRN"----------------------------------------------------------------------------------------------------\n");
-    printf(KNRM"");
+    printColors(7);
+    printf("----------------------------------------------------------------------------------------------------\n");
+    printColors(8);
     fclose(f1);
 }
 
@@ -172,55 +183,55 @@ void agrProg(char nombProg[]) {
         }
         printf("\nPrograma encontrado!\n\n");
 
+        //Ir a la posicion
+        fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
+        //Leer para saber si esta ocupado el programa
+        fread(&prog2, sizeof(prog2), 1, f1);
         //Cargar a memoria el contenido
         while(fgets(linea,50,f2)) {
             printf("Contenido del programa: %s", linea);
             printf("\n");
             printf("\n");
-        }
-        strcpy(prog1.contenido,linea);
-
-        //Ir a la posicion
-        fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
-
-        //Leer para saber si esta ocupado el programa
-        fread(&prog2, sizeof(prog2), 1, f1);
-
-        //Pproguntar si proga ocupado el lugar
-        if (prog2.id > 0) {
-            printf("Lugar ocupado!\n\n");
-            while (!feof(f1)) {
-                //Avanzar el apuntador y leer
-                fread(&prog2, sizeof(prog2), 1, f1);
-                cont += 1;
-                //empezar a leer 1 por uno
-                if (feof(f1)) {
-                    rewind(f1);
+            strcpy(prog1.contenido,linea);
+            //Ir a la posicion
+            fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
+            //Leer para saber si esta ocupado el programa
+            fread(&prog2, sizeof(prog2), 1, f1);
+            //Pproguntar si proga ocupado el lugar
+            if (prog2.id > 0) {
+                printf("Lugar ocupado!\n\n");
+                while (!feof(f1)) {
+                    //Avanzar el apuntador y leer
                     fread(&prog2, sizeof(prog2), 1, f1);
-                }
-                if (prog2.id == 0) {
-                    fseek(f1, (sizeof(prog1) * (-1)), SEEK_CUR);
-                    prog1.id = cont;
-                    fwrite(&prog1, sizeof(prog1), 1, f1);
-                    printf("Programass ingresados correctamente!\n\n");
-                    break;
-                }
-                if (cont == 5) {
-                    printf("No hay mas espacio para agprogar el programa!");
-                    break;
+                    cont += 1;
+                    //empezar a leer 1 por uno
+                    if (feof(f1)) {
+                        rewind(f1);
+                        fread(&prog2, sizeof(prog2), 1, f1);
+                    }
+                    if (prog2.id == 0) {
+                        fseek(f1, (sizeof(prog1) * (-1)), SEEK_CUR);
+                        prog1.id = id;
+                        fwrite(&prog1, sizeof(prog1), 1, f1);
+                        printf("Programass ingresados correctamente!\n\n");
+                        break;
+                    }
+                    if (cont == 15) {
+                        printf("No hay mas espacio para agregar el programa!");
+                        break;
+                    }
                 }
             }
+            else{
+                fseek(f1,(sizeof(prog1)*(pos-1)),SEEK_SET);
+                prog1.id = id;
+                fwrite(&prog1,sizeof(prog1),1,f1);
+                printf("Programas ingresados correctamente!\n\n");
+                fclose(f2);
+            }
         }
-        else{
-            fseek(f1,(sizeof(prog1)*(pos-1)),SEEK_SET);
-            prog1.id = cont;
-            fwrite(&prog1,sizeof(prog1),1,f1);
-            printf("Programas ingresados correctamente!\n\n");
-            fclose(f2);
-        }
-
     }
-        
+    id = id + 1;
     fclose(f1);
     printf("Ingresa una letra y luego presiona enter...\n");
     scanf("%s",input);
@@ -329,6 +340,36 @@ void cargarSistema(char nomProg[]){
     } else{
         printf("Error al cargar el sistema opertaivo!");
         exit(1);
+    }
+}
+
+void printColors(int opc){
+    switch (opc){
+        case 1 :
+            printf(KCYN"");
+            break;
+        case 2:
+            printf(KBLU"");
+            break;
+        case 3:
+            printf(KGRN"");
+            break;
+        case 4:
+            printf(KMAG"");
+            break;
+        case 5:
+            printf(KRED"");
+            break;
+        case 6:
+            printf(KWHT"");
+            break;
+        case 7:
+            printf(KYEL"");
+            break;
+        case 8:
+            printf(KNRM"");
+            break;
+        default:break;
     }
 }
 
