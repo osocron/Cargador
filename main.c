@@ -14,7 +14,7 @@
 
 struct programa {
     int id;
-    char contenido[50];
+    char contenido[51];
 };
 
 void mostrarPrograma(char nombreProg[]);
@@ -26,6 +26,7 @@ void cargarSistema(char nomProg[]);
 void printColors(int opc);
 
 int id = 2;
+int contadorMemoria = 15;
 
 int main(){
     FILE *f;
@@ -158,7 +159,6 @@ void mostrarPrograma(char nombreProg[]){
 void agrProg(char nombProg[]) {
     
     int pos = 1;
-    int cont = 1;
     char input[50];
     char linea[50];
     char nomProg[30];
@@ -183,52 +183,66 @@ void agrProg(char nombProg[]) {
         }
         printf("\nPrograma encontrado!\n\n");
 
-        //Ir a la posicion
-        fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
-        //Leer para saber si esta ocupado el programa
-        fread(&prog2, sizeof(prog2), 1, f1);
-        //Cargar a memoria el contenido
-        while(fgets(linea,50,f2)) {
-            printf("Contenido del programa: %s", linea);
-            printf("\n");
-            printf("\n");
-            strcpy(prog1.contenido,linea);
+        //Count if whole program will fit
+        int programMemoryCount = 0;
+        while (fgets(linea, 50, f2)) {
+            programMemoryCount++;
+        }
+        //Only do operation if it will fit
+        if (programMemoryCount < contadorMemoria){
+            rewind(f2);
             //Ir a la posicion
             fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
             //Leer para saber si esta ocupado el programa
             fread(&prog2, sizeof(prog2), 1, f1);
-            //Pproguntar si proga ocupado el lugar
-            if (prog2.id > 0) {
-                printf("Lugar ocupado!\n\n");
-                while (!feof(f1)) {
-                    //Avanzar el apuntador y leer
-                    fread(&prog2, sizeof(prog2), 1, f1);
-                    cont += 1;
-                    //empezar a leer 1 por uno
-                    if (feof(f1)) {
-                        rewind(f1);
+            //Cargar a memoria el contenido
+            while (fgets(linea, 50, f2)) {
+                printf("Contenido del programa: %s", linea);
+                printf("\n");
+                printf("\n");
+                strcpy(prog1.contenido, linea);
+                //Ir a la posicion
+                fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
+                //Leer para saber si esta ocupado el programa
+                fread(&prog2, sizeof(prog2), 1, f1);
+                //Pproguntar si proga ocupado el lugar
+                if (prog2.id > 0) {
+                    printf("Lugar ocupado!\n\n");
+                    int cont = 1;
+                    while (!feof(f1)) {
+                        //Avanzar el apuntador y leer
                         fread(&prog2, sizeof(prog2), 1, f1);
-                    }
-                    if (prog2.id == 0) {
-                        fseek(f1, (sizeof(prog1) * (-1)), SEEK_CUR);
-                        prog1.id = id;
-                        fwrite(&prog1, sizeof(prog1), 1, f1);
-                        printf("Programass ingresados correctamente!\n\n");
-                        break;
-                    }
-                    if (cont == 15) {
-                        printf("No hay mas espacio para agregar el programa!");
-                        break;
+                        cont += 1;
+                        //empezar a leer 1 por uno
+                        if (feof(f1)) {
+                            rewind(f1);
+                            fread(&prog2, sizeof(prog2), 1, f1);
+                        }
+                        if (prog2.id == 0) {
+                            fseek(f1, (sizeof(prog1) * (-1)), SEEK_CUR);
+                            prog1.id = id;
+                            fwrite(&prog1, sizeof(prog1), 1, f1);
+                            contadorMemoria = contadorMemoria - 1;
+                            printf("Programass ingresados correctamente!\n\n");
+                            break;
+                        }
+                        if (cont == 15) {
+                            printf("No hay mas espacio para agregar el programa!");
+                            break;
+                        }
                     }
                 }
+                else {
+                    fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
+                    prog1.id = id;
+                    fwrite(&prog1, sizeof(prog1), 1, f1);
+                    contadorMemoria = contadorMemoria - 1;
+                    printf("Programas ingresados correctamente!\n\n");
+                }
             }
-            else{
-                fseek(f1,(sizeof(prog1)*(pos-1)),SEEK_SET);
-                prog1.id = id;
-                fwrite(&prog1,sizeof(prog1),1,f1);
-                printf("Programas ingresados correctamente!\n\n");
-                fclose(f2);
-            }
+            fclose(f2);
+        }else{
+            printf("No hay espacio suficiente para el programa!");
         }
     }
     id = id + 1;
@@ -331,6 +345,7 @@ void cargarSistema(char nomProg[]){
         fseek(f,(sizeof(prog1)*(0)),SEEK_SET);
         prog1.id = 1;
         fwrite(&prog1,sizeof(prog1),1,f);
+        contadorMemoria = contadorMemoria -1;
         printf("Sistema operativo cargado exitosamente!\n\n");
         fclose(f2);
         fclose(f);
