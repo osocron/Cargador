@@ -14,59 +14,64 @@
 
 struct programa {
     int id;
-    char contenido[51];
+    char nombrePrograma[30];
+    char contenido[50];
 };
 
-void mostrarPrograma(char nombreProg[]);
+void mostrarPrograma(char nomMemoria[]);
 void printMenu();
 void agrProg(char nombProg[]);
-int irPos(char nomProg[], int id);
-void delProg(char nomProg[]);
-void cargarSistema(char nomProg[]);
+int irPos(char nomMemoria[], char nomProg[]);
+void descargarProg(char nomMemoria[]);
+void cargarSistema(char nomMemoria[]);
 void printColors(int opc);
 
 int id = 2;
-int contadorMemoria = 15;
+int contadorMemoria = 0;
 
 int main(){
     FILE *f;
-    int i,opc,id;
-    char nomProg[30];
+    int i,opc;
+    char nomProgAEncontrar[30];
+    char nomMemoria[30];
     char input[50];
     int mFlag = 0;
 
     system("clear");
-    printf("Cual es el nombre del programa de memoria? : ");
-    scanf("%s",nomProg);
+    printf("Cual es el nombre de la memoria? : ");
+    scanf("%s",nomMemoria);
 
-    if( access( nomProg, F_OK ) != -1 ) {
+    if( access( nomMemoria, F_OK ) != -1 ) {
         // file exists
-        if((f=fopen(nomProg,"rb"))==NULL){
-            printf("Error al abrir el programa!\n");
+        if((f=fopen(nomMemoria,"rb"))==NULL){
+            printf("Error al abrir la memoria!\n");
             exit(0);
         }
         printf("\nPrograma encontrado, prosiguiendo a cargar el sistema operativo!\n\n");
         printf("Ingresa una letra y luego presiona enter...\n");
         scanf("%s", input);
         fclose(f);
-        cargarSistema(nomProg);
+        cargarSistema(nomMemoria);
     } else {
         // file doesn't exist
         struct programa prog;
-        printf("\n\nLa memoria no existe! Se procedera a crear el esqueleto del programa!\n\n");
-        if((f=fopen(nomProg,"wb"))==NULL){
-            printf("Error al abrir el programa!\n");
+        printf("\n\nLa memoria no existe! Se procedera a crear el esqueleto de la memoria!\n\n");
+        if((f=fopen(nomMemoria,"wb"))==NULL){
+            printf("Error al abrir el la memoria!\n");
             exit(0);
         }
-        printf("Ingresa una letra y luego presiona enter...\n");
+        printf("Ingresa el tamanio de memoria: ");
+        scanf("%d",&contadorMemoria);
+        printf("\n\nIngresa una letra y luego presiona enter...\n");
         scanf("%s",input);
-        prog.id =0;
+        prog.id = 0;
         strcpy(prog.contenido,"");
-        for(i=0;i<15;i++){
+        strcpy(prog.nombrePrograma,"");
+        for(i=0;i<contadorMemoria;i++){
             fwrite(&prog,sizeof(prog),1,f);
         }
         fclose(f);
-        cargarSistema(nomProg);
+        cargarSistema(nomMemoria);
     }
 
     while(mFlag!=1){
@@ -77,24 +82,24 @@ int main(){
         {
             case 1:
                 system("clear");
-                agrProg(nomProg);
+                agrProg(nomMemoria);
                 break;
 
             case 2:
                 system("clear");
-                printf("Ingresar el id del programa: ");
-                scanf("%d",&id);
-                irPos(nomProg,id);
+                printf("Ingresar el nombre del programa: ");
+                scanf("%s",nomProgAEncontrar);
+                irPos(nomMemoria,nomProgAEncontrar);
                 break;
                 
             case 3:
                 system("clear");
-                delProg(nomProg);
+                descargarProg(nomMemoria);
                 break;
 
             case 4:
                 system("clear");
-                mostrarPrograma(nomProg);
+                mostrarPrograma(nomMemoria);
                 printf("Ingresa una letra y luego presiona enter...\n");
                 scanf("%s",input);
                 break;
@@ -116,12 +121,12 @@ int main(){
     return 0;
 }
 
-void mostrarPrograma(char nombreProg[]){
+void mostrarPrograma(char nomMemoria[]){
     FILE *f1;
     struct programa curProg;
     int pos = 0;
 
-    if((f1=fopen(nombreProg,"rb"))==NULL){
+    if((f1=fopen(nomMemoria,"rb"))==NULL){
         printf("Error al abrir el programa!\n");
         exit(0);
     }
@@ -201,6 +206,7 @@ void agrProg(char nombProg[]) {
                 printf("\n");
                 printf("\n");
                 strcpy(prog1.contenido, linea);
+                strcpy(prog1.nombrePrograma,nomProg);
                 //Ir a la posicion
                 fseek(f1, (sizeof(prog1) * (pos - 1)), SEEK_SET);
                 //Leer para saber si esta ocupado el programa
@@ -208,11 +214,9 @@ void agrProg(char nombProg[]) {
                 //Pproguntar si proga ocupado el lugar
                 if (prog2.id > 0) {
                     printf("Lugar ocupado!\n\n");
-                    int cont = 1;
                     while (!feof(f1)) {
                         //Avanzar el apuntador y leer
                         fread(&prog2, sizeof(prog2), 1, f1);
-                        cont += 1;
                         //empezar a leer 1 por uno
                         if (feof(f1)) {
                             rewind(f1);
@@ -224,10 +228,6 @@ void agrProg(char nombProg[]) {
                             fwrite(&prog1, sizeof(prog1), 1, f1);
                             contadorMemoria = contadorMemoria - 1;
                             printf("Programass ingresados correctamente!\n\n");
-                            break;
-                        }
-                        if (cont == 15) {
-                            printf("No hay mas espacio para agregar el programa!");
                             break;
                         }
                     }
@@ -242,7 +242,7 @@ void agrProg(char nombProg[]) {
             }
             fclose(f2);
         }else{
-            printf("No hay espacio suficiente para el programa!");
+            printf("No hay espacio suficiente para el programa!\n\n");
         }
     }
     id = id + 1;
@@ -251,15 +251,15 @@ void agrProg(char nombProg[]) {
     scanf("%s",input);
 }
 
-int irPos(char nomProg[], int id){
+int irPos(char nomMemoria[], char nomPrograma[]){
 
     FILE *f2;
     int cont = 0;
     struct programa programa;
     char input[50];
 
-    if((f2=fopen(nomProg,"rb"))==NULL){
-        printf("Error al abrir el programa!\n");
+    if((f2=fopen(nomMemoria,"rb"))==NULL){
+        printf("Error al abrir la memoria!\n");
         exit(0);
     }
 
@@ -271,8 +271,9 @@ int irPos(char nomProg[], int id){
             cont = 0;
             break;
         }
-        if(programa.id == id){
+        if(strcmp(programa.nombrePrograma,nomPrograma) == 0){
             printf("\nprograma encontrado!: \n\n");
+            printf("Nombre: %s \n",programa.nombrePrograma);
             printf("Descripcion: %s \n",programa.contenido);
             printf("id: %d \n",programa.id);
             break;
@@ -286,26 +287,34 @@ int irPos(char nomProg[], int id){
 }
 
 
-void delProg(char nomProg[]){
+void descargarProg(char nomMemoria[]){
     FILE *f4;
-    int id2;
-    struct programa programa1;
+    char nomPrograma[30];
+    struct programa programa1, programa2;
     char input[50];
 
     printf("Ingresar el id del programa que desea eliminar: ");
-    scanf("%d",&id2);
-    int pos1 = irPos(nomProg,id2);
+    scanf("%s",nomPrograma);
+    int pos1 = irPos(nomMemoria,nomPrograma);
 
     if(pos1 != 0){
-        if((f4=fopen(nomProg,"rb+"))==NULL){
+        if((f4=fopen(nomMemoria,"rb+"))==NULL){
             printf("Error al abrir el programa!\n");
             exit(0);
         }
         programa1.id =0;
         strcpy(programa1.contenido,"");
-
+        strcpy(programa1.nombrePrograma,"");
         fseek(f4,(sizeof(programa1)*(pos1-1)),SEEK_SET);
         fwrite(&programa1,sizeof(programa1),1,f4);
+        contadorMemoria = contadorMemoria + 1;
+        fread(&programa2,sizeof(programa2),1,f4);
+        while(strcmp(programa2.nombrePrograma,nomPrograma) == 0){
+            fseek(f4,(sizeof(programa1)*(-1)),SEEK_CUR);
+            fwrite(&programa1,sizeof(programa1),1,f4);
+            contadorMemoria = contadorMemoria + 1;
+            fread(&programa2,sizeof(programa2),1,f4);
+        }
         printf("Programa eliminado correctamente!\n\n");
         fclose(f4);
     }
@@ -314,7 +323,7 @@ void delProg(char nomProg[]){
     scanf("%s",input);
 }
 
-void cargarSistema(char nomProg[]){
+void cargarSistema(char nomMemoria[]){
 
     system("clear");
 
@@ -322,7 +331,7 @@ void cargarSistema(char nomProg[]){
     char input[50],linea[50];
     struct programa prog1;
 
-    if((f=fopen(nomProg,"rb+"))==NULL){
+    if((f=fopen(nomMemoria,"rb+"))==NULL){
         printf("Error al abrir el programa!\n");
         exit(1);
     }
@@ -342,6 +351,7 @@ void cargarSistema(char nomProg[]){
         }
 
         strcpy(prog1.contenido, linea);
+        strcpy(prog1.nombrePrograma,"sistema_operativo.txt");
         fseek(f,(sizeof(prog1)*(0)),SEEK_SET);
         prog1.id = 1;
         fwrite(&prog1,sizeof(prog1),1,f);
@@ -359,6 +369,10 @@ void cargarSistema(char nomProg[]){
 }
 
 void printColors(int opc){
+    ///
+    if(opc > 8){
+        opc = opc % 3;
+    }
     switch (opc){
         case 1 :
             printf(KCYN"");
@@ -393,7 +407,7 @@ void printMenu(){
     printf("Favor de elegir una opcion: \n\n");
     printf("1. Cargar programas a memoria\n");
     printf("2. Consultar un programa\n");
-    printf("3. Eliminar un programa de la memoria\n");
+    printf("3. Descargar un programa de la memoria\n");
     printf("4. Mostrar todos los programas de la memoria\n");
     printf("5. Salir del programa\n\n");
 }
